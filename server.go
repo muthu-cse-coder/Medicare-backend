@@ -79,6 +79,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -105,10 +106,10 @@ func main() {
 		log.Fatal("Failed to initialize JWT:", err)
 	}
 
-	// Connect to database using Railway DATABASE_URL
+	// Connect to database (Railway DATABASE_URL)
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = cfg.GetDatabaseURL() // fallback
+		dbURL = cfg.GetDatabaseURL() // fallback for local dev
 	}
 
 	if err := database.Connect(dbURL); err != nil {
@@ -116,7 +117,7 @@ func main() {
 	}
 	defer database.Close()
 
-	// Initialize database schema
+	// Initialize schema
 	if err := database.InitSchema(); err != nil {
 		log.Fatal("Failed to initialize schema:", err)
 	}
@@ -127,13 +128,13 @@ func main() {
 		Resolvers: resolver,
 	}))
 
-	// Setup routes
+	// HTTP mux
 	mux := http.NewServeMux()
 
-	// GraphQL Playground only in development
+	// Playground in development
 	if cfg.Server.Environment == "development" {
-		mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
-		log.Println("🎮 GraphQL Playground available at /")
+		mux.Handle("/", playground.Handler("GraphQL Playground", "/query"))
+		log.Println("🎮 Playground available at /")
 	}
 
 	// GraphQL endpoint with middleware
@@ -144,21 +145,34 @@ func main() {
 	)
 	mux.Handle("/query", graphqlHandler)
 
-	// Health check endpoint
+	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// PORT from Railway
+	// ✅ Test DB route
+	mux.HandleFunc("/test-db", func(w http.ResponseWriter, r *http.Request) {
+		var count int
+		err := database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Sprintf("DB Error: %v", err)))
+			return
+		}
+		w.Write([]byte(fmt.Sprintf("Users in DB: %d", count)))
+	})
+
+	// Use dynamic PORT for Railway
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = cfg.Server.Port
+		port = cfg.Server.Port // fallback for local
 	}
 
 	log.Printf("🚀 Server starting on port %s", port)
 	log.Println("📊 GraphQL endpoint: /query")
+
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
