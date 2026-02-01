@@ -11,7 +11,7 @@ func CORS(frontendURL string) func(http.Handler) http.Handler {
 			origin := r.Header.Get("Origin")
 
 			// Allow both React dev ports
-			if origin == "http://localhost:5173" || origin == "http://localhost:3000" {
+			if origin == "http://localhost:5173" || origin == "http://localhost:3000" || origin == "https://vitaguide.netlify.app" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 			}
 
