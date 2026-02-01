@@ -106,10 +106,10 @@ func main() {
 		log.Fatal("Failed to initialize JWT:", err)
 	}
 
-	// Connect to database (Railway DATABASE_URL)
+	// Connect to database using Railway DATABASE_URL
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = cfg.GetDatabaseURL() // fallback for local dev
+		dbURL = cfg.GetDatabaseURL() // fallback for local
 	}
 
 	if err := database.Connect(dbURL); err != nil {
@@ -122,22 +122,21 @@ func main() {
 		log.Fatal("Failed to initialize schema:", err)
 	}
 
-	// Create GraphQL server
+	// GraphQL server
 	resolver := graph.NewResolver()
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
 		Resolvers: resolver,
 	}))
 
-	// HTTP mux
 	mux := http.NewServeMux()
 
-	// Playground in development
+	// Playground only in development
 	if cfg.Server.Environment == "development" {
-		mux.Handle("/", playground.Handler("GraphQL Playground", "/query"))
-		log.Println("🎮 Playground available at /")
+		mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+		log.Println("🎮 GraphQL Playground available at /")
 	}
 
-	// GraphQL endpoint with middleware
+	// GraphQL endpoint
 	graphqlHandler := middleware.Logger(
 		middleware.CORS(cfg.Server.FrontendURL)(
 			auth.Middleware(srv),
@@ -152,7 +151,7 @@ func main() {
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// ✅ Test DB route
+	// Test DB connection
 	mux.HandleFunc("/test-db", func(w http.ResponseWriter, r *http.Request) {
 		var count int
 		err := database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
@@ -164,10 +163,10 @@ func main() {
 		w.Write([]byte(fmt.Sprintf("Users in DB: %d", count)))
 	})
 
-	// Use dynamic PORT for Railway
+	// PORT from Railway
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = cfg.Server.Port // fallback for local
+		port = cfg.Server.Port
 	}
 
 	log.Printf("🚀 Server starting on port %s", port)
