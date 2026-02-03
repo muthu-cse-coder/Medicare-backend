@@ -92,9 +92,12 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// 🔹 Load .env file for local
+	_ = godotenv.Load()
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -107,17 +110,17 @@ func main() {
 		log.Fatal("Failed to initialize JWT:", err)
 	}
 
-	// ✅ CONNECT DATABASE (IMPORTANT)
+	// ✅ Connect to Database
 	if err := database.Connect(); err != nil {
 		log.Fatal("Database connection failed:", err)
 	}
 
-	// ✅ INIT SCHEMA
+	// ✅ Initialize schema
 	// if err := database.InitSchema(); err != nil {
 	// 	log.Fatal("Schema init failed:", err)
 	// }
 
-	// GraphQL server
+	// GraphQL server setup
 	resolver := graph.NewResolver()
 	srv := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
@@ -129,7 +132,7 @@ func main() {
 
 	// Playground only in development
 	if cfg.Server.Environment == "development" {
-		mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+		mux.Handle("/", playground.Handler("GraphQL Playground", "/query"))
 		log.Println("🎮 GraphQL Playground available at /")
 	}
 
@@ -159,14 +162,19 @@ func main() {
 		w.Write([]byte(fmt.Sprintf("Users in DB: %d", count)))
 	})
 
-	// ✅ Railway PORT
+	// 🔹 PORT handling (Railway or local)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cfg.Server.Port
+		if port == "" {
+			port = "8080" // fallback for local
+		}
 	}
 
 	log.Printf("🚀 Server running on port %s", port)
 	log.Println("📊 GraphQL endpoint: /query")
+	log.Println("🔥 About to start HTTP server...")
 
+	// Start server
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
