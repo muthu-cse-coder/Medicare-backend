@@ -67,7 +67,26 @@ func Load() (*Config, error) {
 }
 
 // GetDatabaseURL returns PostgreSQL connection string
+// func (c *Config) GetDatabaseURL() string {
+// 	return fmt.Sprintf(
+// 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+// 		c.Database.Host,
+// 		c.Database.Port,
+// 		c.Database.User,
+// 		c.Database.Password,
+// 		c.Database.DBName,
+// 		c.Database.SSLMode,
+// 	)
+// }
+
+// GetDatabaseURL returns PostgreSQL connection string
 func (c *Config) GetDatabaseURL() string {
+	// First check for DATABASE_URL (for production/Render)
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		return dbURL
+	}
+
+	// Fallback to individual environment variables (for local development)
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Database.Host,
