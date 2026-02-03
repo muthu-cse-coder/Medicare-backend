@@ -74,29 +74,37 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 var DB *sql.DB
 
 func Connect() error {
-	var err error
+	// Local development-க்கு .env load செய்யலாம்
+	_ = godotenv.Load()
 
-	host := os.Getenv("PGHOST")
-	port := os.Getenv("PGPORT")
-	user := os.Getenv("PGUSER")
-	password := os.Getenv("PGPASSWORD")
-	dbname := os.Getenv("PGDATABASE")
+	// Railway DATABASE_URL முதலில் பார்க்கும்
+	connectionString := os.Getenv("DATABASE_URL")
+	if connectionString == "" {
+		// Local testing fallback
+		host := os.Getenv("PGHOST")
+		port := os.Getenv("PGPORT")
+		user := os.Getenv("PGUSER")
+		password := os.Getenv("PGPASSWORD")
+		dbname := os.Getenv("PGDATABASE")
 
-	if host == "" {
-		return fmt.Errorf("PGHOST not set (Railway env issue)")
+		if host == "" || port == "" || user == "" || password == "" || dbname == "" {
+			return fmt.Errorf("database connection info not set in environment")
+		}
+
+		connectionString = fmt.Sprintf(
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			host, port, user, password, dbname,
+		)
 	}
 
-	connectionString := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
-		host, port, user, password, dbname,
-	)
-
+	var err error
 	DB, err = sql.Open("postgres", connectionString)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
@@ -105,9 +113,6 @@ func Connect() error {
 	if err = DB.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
-
-	DB.SetMaxOpenConns(25)
-	DB.SetMaxIdleConns(5)
 
 	log.Println("✅ Database connected successfully!")
 	return nil
