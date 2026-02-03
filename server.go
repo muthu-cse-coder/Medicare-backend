@@ -96,7 +96,7 @@ import (
 )
 
 func main() {
-	// 🔹 Load .env file for local
+	// Load local .env (optional, safe if exists)
 	_ = godotenv.Load()
 
 	// Load configuration
@@ -110,23 +110,21 @@ func main() {
 		log.Fatal("Failed to initialize JWT:", err)
 	}
 
-	// ✅ Connect to Database
+	// Connect to Database
 	if err := database.Connect(); err != nil {
 		log.Fatal("Database connection failed:", err)
 	}
 
-	// ✅ Initialize schema
+	// Initialize schema
 	// if err := database.InitSchema(); err != nil {
 	// 	log.Fatal("Schema init failed:", err)
 	// }
 
-	// GraphQL server setup
+	// GraphQL server
 	resolver := graph.NewResolver()
-	srv := handler.NewDefaultServer(
-		graph.NewExecutableSchema(graph.Config{
-			Resolvers: resolver,
-		}),
-	)
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+		Resolvers: resolver,
+	}))
 
 	mux := http.NewServeMux()
 
@@ -162,7 +160,7 @@ func main() {
 		w.Write([]byte(fmt.Sprintf("Users in DB: %d", count)))
 	})
 
-	// 🔹 PORT handling (Railway or local)
+	// PORT handling: Railway override automatically
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cfg.Server.Port
@@ -175,6 +173,5 @@ func main() {
 	log.Println("📊 GraphQL endpoint: /query")
 	log.Println("🔥 About to start HTTP server...")
 
-	// Start server
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
