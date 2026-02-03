@@ -95,6 +95,7 @@ import (
 )
 
 func main() {
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -106,27 +107,23 @@ func main() {
 		log.Fatal("Failed to initialize JWT:", err)
 	}
 
-	// Connect to database using Railway DATABASE_URL
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = cfg.GetDatabaseURL() // fallback for local
+	// ✅ CONNECT DATABASE (IMPORTANT)
+	if err := database.Connect(); err != nil {
+		log.Fatal("Database connection failed:", err)
 	}
 
-	if err := database.Connect(dbURL); err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
-	defer database.Close()
-
-	// Initialize schema
-	if err := database.InitSchema(); err != nil {
-		log.Fatal("Failed to initialize schema:", err)
-	}
+	// ✅ INIT SCHEMA
+	// if err := database.InitSchema(); err != nil {
+	// 	log.Fatal("Schema init failed:", err)
+	// }
 
 	// GraphQL server
 	resolver := graph.NewResolver()
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
-		Resolvers: resolver,
-	}))
+	srv := handler.NewDefaultServer(
+		graph.NewExecutableSchema(graph.Config{
+			Resolvers: resolver,
+		}),
+	)
 
 	mux := http.NewServeMux()
 
@@ -146,7 +143,6 @@ func main() {
 
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
@@ -163,16 +159,14 @@ func main() {
 		w.Write([]byte(fmt.Sprintf("Users in DB: %d", count)))
 	})
 
-	// PORT from Railway
+	// ✅ Railway PORT
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cfg.Server.Port
 	}
 
-	log.Printf("🚀 Server starting on port %s", port)
+	log.Printf("🚀 Server running on port %s", port)
 	log.Println("📊 GraphQL endpoint: /query")
 
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		log.Fatal("Server failed to start:", err)
-	}
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
