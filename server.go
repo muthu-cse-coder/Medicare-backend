@@ -2,14 +2,12 @@ package main
 
 import (
 	"log"
-	"net/http"
-
 	"medicare-backend/config"
 	"medicare-backend/database"
 	"medicare-backend/graph"
 	"medicare-backend/internal/auth"
-
 	"medicare-backend/internal/auth/middleware"
+	"net/http"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
