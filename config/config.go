@@ -34,19 +34,19 @@ type JWTConfig struct {
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
-	// Load .env file
+	// Load .env file (only works locally, not on Render)
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: .env file not found")
 	}
 
 	config := &Config{
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "password"),
-			DBName:   getEnv("DB_NAME", "medicare"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			Host:     getEnv("PGHOST", "localhost"),
+			Port:     getEnv("PGPORT", "5432"),
+			User:     getEnv("PGUSER", "postgres"),
+			Password: getEnv("PGPASSWORD", "password"),
+			DBName:   getEnv("PGDATABASE", "medicare"),
+			SSLMode:  getEnv("PGSSLMODE", "disable"),
 		},
 		Server: ServerConfig{
 			Port:        getEnv("PORT", "8080"),
@@ -67,21 +67,8 @@ func Load() (*Config, error) {
 }
 
 // GetDatabaseURL returns PostgreSQL connection string
-// func (c *Config) GetDatabaseURL() string {
-// 	return fmt.Sprintf(
-// 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-// 		c.Database.Host,
-// 		c.Database.Port,
-// 		c.Database.User,
-// 		c.Database.Password,
-// 		c.Database.DBName,
-// 		c.Database.SSLMode,
-// 	)
-// }
-
-// GetDatabaseURL returns PostgreSQL connection string
 func (c *Config) GetDatabaseURL() string {
-	// First check for DATABASE_URL (for production/Render)
+	// First check for DATABASE_URL (for production/Render/Supabase)
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
 		return dbURL
 	}
